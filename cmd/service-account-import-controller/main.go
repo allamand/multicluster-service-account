@@ -19,14 +19,23 @@ package main
 import (
 	"log"
 
+	// Import all Kubernetes client auth plugins (e.g. Azure, GCP, OIDC, etc.)
+	_ "k8s.io/client-go/plugin/pkg/client/auth"
+
 	"admiralty.io/multicluster-service-account/pkg/apis"
 	"admiralty.io/multicluster-service-account/pkg/config"
 	"admiralty.io/multicluster-service-account/pkg/importer"
 	"k8s.io/sample-controller/pkg/signals"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
+
+	logf "sigs.k8s.io/controller-runtime/pkg/runtime/log"
 )
 
 func main() {
+
+	//Activate logs in manager
+	logf.SetLogger(logf.ZapLogger(true))
+
 	cfg, _, err := config.ConfigAndNamespaceForContext("")
 	// here, we just want to make sure we DON'T use a service account import,
 	// which, if there is only one, would be loaded by config.ConfigAndNamespace()
@@ -35,7 +44,20 @@ func main() {
 		log.Fatalf("%v\n", err)
 	}
 
-	m, err := manager.New(cfg, manager.Options{})
+	//TODO: for now just force namespace
+	namespace := "cassandra-e2e"
+	log.Print("using namespace " + namespace)
+
+	//namespace="" //uncommenting this line I got this error:
+
+    //ERROR: logging before flag.Parse: E1119 16:51:40.158415    7013 reflector.go:134] sigs.k8s.
+    // io/controller-runtime/pkg/cache/internal/informers_map.go:126: Failed to list *v1alpha1.
+    // ServiceAccountImport: serviceaccountimports.multicluster.admiralty.
+    // io is forbidden: User "https://cluster/dex#sallamand" cannot list resource "serviceaccountimports" in API group
+    // "multicluster.admiralty.io" at the cluster scope
+	//ERROR: logging before flag.Parse: E1119 16:51:40.170425    7013 reflector.go:134] sigs.k8s.io/controller-runtime/pkg/cache/internal/informers_map.go:126: Failed to list *v1.Secret: secrets is forbidden: User "https://cluster/dex#sallamand" cannot list resource "secrets" in API group "" at the cluster scope
+
+	m, err := manager.New(cfg, manager.Options{Namespace: namespace})
 	if err != nil {
 		log.Fatalf("%v\n", err)
 	}
